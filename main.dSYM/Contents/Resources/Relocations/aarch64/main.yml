@@ -1,0 +1,13 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     main
+relocations:
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _thread_func, symObjAddr: 0x0, symBinAddr: 0x1000038A0, symSize: 0xF4 }
+  - { offsetInCU: 0x235, offset: 0x235, size: 0x8, addend: 0x0, symName: _thread_func, symObjAddr: 0x0, symBinAddr: 0x1000038A0, symSize: 0xF4 }
+  - { offsetInCU: 0x287, offset: 0x287, size: 0x8, addend: 0x0, symName: _threadpool_cleanup, symObjAddr: 0xF4, symBinAddr: 0x100003994, symSize: 0x40 }
+  - { offsetInCU: 0x2AF, offset: 0x2AF, size: 0x8, addend: 0x0, symName: _threadpool_shutdown, symObjAddr: 0x134, symBinAddr: 0x1000039D4, symSize: 0x98 }
+  - { offsetInCU: 0x2F3, offset: 0x2F3, size: 0x8, addend: 0x0, symName: _threadpool_add_work, symObjAddr: 0x1CC, symBinAddr: 0x100003A6C, symSize: 0x130 }
+  - { offsetInCU: 0x337, offset: 0x337, size: 0x8, addend: 0x0, symName: _threadpool_init, symObjAddr: 0x2FC, symBinAddr: 0x100003B9C, symSize: 0x130 }
+  - { offsetInCU: 0x397, offset: 0x397, size: 0x8, addend: 0x0, symName: _add_two_nums, symObjAddr: 0x42C, symBinAddr: 0x100003CCC, symSize: 0x70 }
+  - { offsetInCU: 0x3DB, offset: 0x3DB, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x49C, symBinAddr: 0x100003D3C, symSize: 0x130 }
+...
