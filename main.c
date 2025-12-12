@@ -19,7 +19,7 @@ typedef struct threadpool {
   int workers_len;
 
   // list of work for threads to work off
-  thread_work_t **work;
+  thread_work_t *work;
 
   // how much work there is in the pool
   int thread_work_queue_len;
@@ -71,7 +71,7 @@ int threadpool_join(threadpool_t *pool) {
   return 0;
 }
 
-int threadpool_add_work(threadpool_t *p, thread_work_t *work) {
+int threadpool_add_work(threadpool_t *p, thread_work_t work) {
   int ret = pthread_mutex_lock(&p->mutex);
 
   if (ret != 0) {
