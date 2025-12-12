@@ -15,6 +15,8 @@ typedef struct threadpool {
   // references to thread handlers in the pool
   pthread_t *workers;
 
+  pthread_cond_t *work_available;
+
   // how many worker threads we have
   int workers_len;
 
@@ -30,35 +32,18 @@ typedef struct threadpool {
 } threadpool_t;
 
 void *thread_func(void *args) {
-  (void)args;
+  threadpool_t *pool = (threadpool_t *)args;
 
-  for (int i = 0; i < 1; i++) {
-    printf("in the thread!\n");
+  while (1) {
+
+    pthread_cond_wait(pool->work_available, &pool->mutex);
+
+    // get a pointer to the work, and remove it from the pool
+
+    pthread_mutex_unlock(&pool->mutex);
   }
 
   return NULL;
-}
-
-threadpool_t *threadpool_init(int thread_capacity) {
-  threadpool_t *pool = malloc(sizeof(threadpool_t));
-
-  int ret = pthread_mutex_init(&pool->mutex, NULL);
-
-  if (ret != 0) {
-    fprintf(stderr, "unable to create mutex\n");
-  }
-
-  pool->workers = malloc(sizeof(pthread_t) * thread_capacity);
-  pool->workers_len = thread_capacity;
-
-  for (int i = 0; i < thread_capacity; i++) {
-    pthread_create(&pool->workers[i], NULL, thread_func, NULL);
-  }
-
-  pool->thread_work_queue_len = 0;
-  pool->thread_work_queue_capacity = 100;
-
-  return pool;
 }
 
 int threadpool_cleanup(threadpool_t *pool) {
@@ -100,7 +85,33 @@ int threadpool_add_work(threadpool_t *p, thread_work_t work) {
     fprintf(stderr, "failed to release mutex\n");
   }
 
+  pthread_cond_signal(p->work_available);
+
   return 0;
+}
+
+threadpool_t *threadpool_init(int thread_capacity) {
+  threadpool_t *pool = malloc(sizeof(threadpool_t));
+
+  int ret = pthread_mutex_init(&pool->mutex, NULL);
+
+  if (ret != 0) {
+    fprintf(stderr, "unable to create mutex\n");
+  }
+
+  pool->workers = malloc(sizeof(pthread_t) * thread_capacity);
+  pool->workers_len = thread_capacity;
+
+  for (int i = 0; i < thread_capacity; i++) {
+    pthread_create(&pool->workers[i], NULL, thread_func, pool);
+  }
+
+  pool->thread_work_queue_len = 0;
+  pool->thread_work_queue_capacity = 100;
+
+  pthread_cond_init(pool->work_available, NULL);
+
+  return pool;
 }
 
 int main() {
