@@ -38,4 +38,11 @@ int threadpool_add_work(thread_work_t *work) {
   // release mutex
   return 0;
 }
+
+void *thread_func(void *args) {
+
+  // race for work
+  return NULL;
+}
+
 int main() {}
