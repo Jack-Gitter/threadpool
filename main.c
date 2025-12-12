@@ -65,6 +65,8 @@ int threadpool_cleanup(threadpool_t *pool) {
   free(pool->work);
   free(pool->workers);
   free(pool);
+  pthread_mutex_destroy(&pool->mutex);
+  pthread_cond_destroy(&pool->work_available);
   return 0;
 }
 
@@ -77,6 +79,8 @@ int threadpool_shutdown(threadpool_t *pool) {
   for (int i = 0; i < pool->workers_len; i++) {
     pthread_join(pool->workers[i], NULL);
   }
+
+  threadpool_cleanup(pool);
 
   return 0;
 }
@@ -136,10 +140,8 @@ threadpool_t *threadpool_init(int thread_capacity) {
 
 void *add_two_nums(void *nums) {
   int *vals = (int *)nums;
-  int *ret = malloc(sizeof(int));
-  *ret = vals[0] + vals[1];
-  printf("value is %d\n", *ret);
-  return (void *)ret;
+  printf("value is %d\n", vals[0] + vals[1]);
+  return NULL;
 }
 
 int main() {
@@ -159,8 +161,5 @@ int main() {
   threadpool_add_work(pool, work2);
   threadpool_add_work(pool, work3);
 
-  // sleep(3);
-
   threadpool_shutdown(pool);
-  threadpool_cleanup(pool);
 }
