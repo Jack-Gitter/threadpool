@@ -61,6 +61,12 @@ threadpool_t *threadpool_init(int thread_capacity) {
   return pool;
 }
 
+int threadpool_cleanup(threadpool_t *pool) {
+  free(pool->workers);
+  free(pool);
+  return 0;
+}
+
 int threadpool_join(threadpool_t *pool) {
   for (int i = 0; i < pool->workers_len; ++i) {
     int ret = pthread_join(pool->workers[i], NULL);
@@ -100,4 +106,5 @@ int threadpool_add_work(threadpool_t *p, thread_work_t work) {
 int main() {
   threadpool_t *pool = threadpool_init(10);
   threadpool_join(pool);
+  threadpool_cleanup(pool);
 }
