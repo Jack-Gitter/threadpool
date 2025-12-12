@@ -1,4 +1,4 @@
 .PHONY: all
 
 all: main.c
-	clang -o main main.c
+	clang -g -std=c2x -o main main.c

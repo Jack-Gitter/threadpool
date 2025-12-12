@@ -1,10 +1,11 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 // generic work for thread to execute
 typedef struct thread_work {
-  void (*func)(void *);
+  void *(*func)(void *);
   void *args;
 } thread_work_t;
 
@@ -15,7 +16,7 @@ typedef struct threadpool {
   // references to thread handlers in the pool
   pthread_t *workers;
 
-  pthread_cond_t *work_available;
+  pthread_cond_t work_available;
 
   // how many worker threads we have
   int workers_len;
@@ -29,6 +30,8 @@ typedef struct threadpool {
   // how much work can be stored in the pool at once
   int thread_work_queue_capacity;
 
+  bool shutdown;
+
 } threadpool_t;
 
 void *thread_func(void *args) {
@@ -36,25 +39,42 @@ void *thread_func(void *args) {
 
   while (1) {
 
-    pthread_cond_wait(pool->work_available, &pool->mutex);
+    pthread_mutex_lock(&pool->mutex);
 
-    // get a pointer to the work, and remove it from the pool
+    while (!pool->shutdown && pool->thread_work_queue_len == 0) {
+      pthread_cond_wait(&pool->work_available, &pool->mutex);
+    }
+
+    if (pool->shutdown && pool->thread_work_queue_len == 0) {
+      pthread_mutex_unlock(&pool->mutex);
+      pthread_exit(NULL);
+    }
+
+    thread_work_t work = pool->work[pool->thread_work_queue_len - 1];
+    pool->thread_work_queue_len -= 1;
 
     pthread_mutex_unlock(&pool->mutex);
+
+    work.func(work.args);
   }
 
   return NULL;
 }
 
 int threadpool_cleanup(threadpool_t *pool) {
+  free(pool->work);
   free(pool->workers);
   free(pool);
   return 0;
 }
 
 int threadpool_join(threadpool_t *pool) {
+  pthread_mutex_lock(&pool->mutex);
+  pool->shutdown = true;
+  pthread_mutex_unlock(&pool->mutex);
+
   for (int i = 0; i < pool->workers_len; ++i) {
-    int ret = pthread_join(pool->workers[i], NULL);
+    int ret = pthread_cancel(pool->workers[i]);
     if (ret != 0) {
       fprintf(stderr, "failed to join thread\n");
     }
@@ -85,7 +105,7 @@ int threadpool_add_work(threadpool_t *p, thread_work_t work) {
     fprintf(stderr, "failed to release mutex\n");
   }
 
-  pthread_cond_signal(p->work_available);
+  pthread_cond_signal(&p->work_available);
 
   return 0;
 }
@@ -99,23 +119,49 @@ threadpool_t *threadpool_init(int thread_capacity) {
     fprintf(stderr, "unable to create mutex\n");
   }
 
+  pool->shutdown = false;
   pool->workers = malloc(sizeof(pthread_t) * thread_capacity);
   pool->workers_len = thread_capacity;
+  pool->thread_work_queue_len = 0;
+  pool->thread_work_queue_capacity = 100;
+  pool->work = malloc(sizeof(thread_work_t) * pool->thread_work_queue_capacity);
+
+  pthread_cond_init(&pool->work_available, NULL);
 
   for (int i = 0; i < thread_capacity; i++) {
     pthread_create(&pool->workers[i], NULL, thread_func, pool);
   }
 
-  pool->thread_work_queue_len = 0;
-  pool->thread_work_queue_capacity = 100;
-
-  pthread_cond_init(pool->work_available, NULL);
-
   return pool;
+}
+
+void *add_two_nums(void *nums) {
+  int *vals = (int *)nums;
+  int *ret = malloc(sizeof(int));
+  *ret = vals[0] + vals[1];
+  printf("value is %d\n", *ret);
+  return (void *)ret;
 }
 
 int main() {
   threadpool_t *pool = threadpool_init(10);
+
+  int args[2] = {1, 2};
+  int args1[2] = {2, 2};
+  int args2[2] = {3, 2};
+  int args3[2] = {4, 2};
+
+  thread_work_t work = {add_two_nums, (void *)args};
+  thread_work_t work1 = {add_two_nums, (void *)args1};
+  thread_work_t work2 = {add_two_nums, (void *)args2};
+  thread_work_t work3 = {add_two_nums, (void *)args3};
+  threadpool_add_work(pool, work);
+  threadpool_add_work(pool, work1);
+  threadpool_add_work(pool, work2);
+  threadpool_add_work(pool, work3);
+
+  // sleep(3);
+
   threadpool_join(pool);
   threadpool_cleanup(pool);
 }
