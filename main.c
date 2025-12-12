@@ -41,13 +41,8 @@ void *thread_func(void *args) {
 
     pthread_mutex_lock(&pool->mutex);
 
-    while (!pool->shutdown && pool->thread_work_queue_len == 0) {
+    while (pool->thread_work_queue_len == 0) {
       pthread_cond_wait(&pool->work_available, &pool->mutex);
-    }
-
-    if (pool->shutdown && pool->thread_work_queue_len == 0) {
-      pthread_mutex_unlock(&pool->mutex);
-      pthread_exit(NULL);
     }
 
     thread_work_t work = pool->work[pool->thread_work_queue_len - 1];
@@ -68,17 +63,10 @@ int threadpool_cleanup(threadpool_t *pool) {
   return 0;
 }
 
-int threadpool_join(threadpool_t *pool) {
+int threadpool_shutdown(threadpool_t *pool) {
   pthread_mutex_lock(&pool->mutex);
   pool->shutdown = true;
   pthread_mutex_unlock(&pool->mutex);
-
-  for (int i = 0; i < pool->workers_len; ++i) {
-    int ret = pthread_cancel(pool->workers[i]);
-    if (ret != 0) {
-      fprintf(stderr, "failed to join thread\n");
-    }
-  }
   return 0;
 }
 
@@ -160,8 +148,8 @@ int main() {
   threadpool_add_work(pool, work2);
   threadpool_add_work(pool, work3);
 
-  // sleep(3);
+  sleep(3);
 
-  threadpool_join(pool);
+  threadpool_shutdown(pool);
   threadpool_cleanup(pool);
 }
