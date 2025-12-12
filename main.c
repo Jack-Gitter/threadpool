@@ -64,9 +64,9 @@ void *thread_func(void *args) {
 int threadpool_cleanup(threadpool_t *pool) {
   free(pool->work);
   free(pool->workers);
-  free(pool);
   pthread_mutex_destroy(&pool->mutex);
   pthread_cond_destroy(&pool->work_available);
+  free(pool);
   return 0;
 }
 
@@ -141,16 +141,25 @@ threadpool_t *threadpool_init(int thread_capacity) {
 void *add_two_nums(void *nums) {
   int *vals = (int *)nums;
   printf("value is %d\n", vals[0] + vals[1]);
+  free(nums);
   return NULL;
 }
 
 int main() {
   threadpool_t *pool = threadpool_init(10);
 
-  int args[2] = {1, 2};
-  int args1[2] = {2, 2};
-  int args2[2] = {3, 2};
-  int args3[2] = {4, 2};
+  int *args = malloc(sizeof(int) * 2);
+  args[0] = 1;
+  args[1] = 1;
+  int *args1 = malloc(sizeof(int) * 2);
+  args1[0] = 2;
+  args1[1] = 2;
+  int *args2 = malloc(sizeof(int) * 2);
+  args2[0] = 3;
+  args2[1] = 3;
+  int *args3 = malloc(sizeof(int) * 2);
+  args3[0] = 4;
+  args3[1] = 4;
 
   thread_work_t work = {add_two_nums, (void *)args};
   thread_work_t work1 = {add_two_nums, (void *)args1};
